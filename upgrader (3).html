@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPGRADER PRO 3.0 — CS2 Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap');
+        :root {
+            --bg: #0b0c12;
+            --panel: #13141e;
+            --sub: #0f1018;
+            --accent: #ffd200;
+            --accent2: #ff6b00;
+            --win: #00e676;
+            --lose: #ff1744;
+            --border: #1e2030;
+            --text: #ffffff;
+            --gray: #6b7280;
+            --blue: #66c0f4;
+            --purple: #8847ff;
+            --admin: #ff00ff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Rajdhani', system-ui, sans-serif;
+            min-height: 100vh; overflow-x: hidden; user-select: none;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(255,210,0,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 60% at 20% 80%, rgba(136,71,255,0.04) 0%, transparent 60%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ADMIN GLOW */
+        body.admin-mode::before {
+            background:
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(255,0,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 60% at 20% 80%, rgba(255,0,255,0.04) 0%, transparent 60%);
+        }
+
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; height: 56px;
+            background: var(--panel); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900;
+            letter-spacing: 2px; color: var(--text);
+        }
+        .logo span { color: var(--accent); }
+        .logo sup { font-size: 9px; color: var(--gray); vertical-align: super; letter-spacing: 1px; }
+        .logo .admin-tag { font-size: 9px; color: var(--admin); margin-left: 6px; animation: adminPulse 1.5s ease-in-out infinite; display: none; }
+        body.admin-mode .logo .admin-tag { display: inline; }
+        @keyframes adminPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .header-nav { display: flex; gap: 4px; }
+        .nav-btn {
+            background: none; border: 1px solid transparent;
+            color: var(--gray); padding: 6px 14px; border-radius: 6px;
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;
+        }
+        .nav-btn:hover, .nav-btn.active { color: var(--text); border-color: var(--border); background: var(--sub); }
+        .nav-btn.tab-active { color: var(--accent); border-color: rgba(255,210,0,0.3); background: rgba(255,210,0,0.05); }
+        .nav-btn.admin-tab { display: none; }
+        body.admin-mode .nav-btn.admin-tab { display: block; color: var(--admin); border-color: rgba(255,0,255,0.2); }
+
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .balance-chip {
+            background: var(--sub); border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: 6px; font-size: 14px; font-weight: 700; color: var(--accent);
+        }
+        .btn-steam {
+            background: linear-gradient(135deg, #1b2838, #2a475e);
+            border: 1px solid #2a475e; color: var(--blue);
+            padding: 7px 14px; border-radius: 6px;
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; gap: 7px; transition: border-color 0.2s;
+        }
+        .btn-steam:hover { border-color: var(--blue); }
+        .user-pill {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--sub); border: 1px solid var(--border);
+            padding: 4px 12px 4px 4px; border-radius: 20px;
+        }
+        .user-pill img { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); }
+        .user-pill span { font-size: 13px; font-weight: 700; }
+        body.admin-mode .user-pill { border-color: rgba(255,0,255,0.4); }
+        body.admin-mode .user-pill img { border-color: var(--admin); }
+
+        /* TABS */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .app-layout {
+            display: grid; grid-template-columns: 200px 1fr; gap: 0;
+            min-height: calc(100vh - 56px); position: relative; z-index: 1;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: var(--panel); border-right: 1px solid var(--border);
+            padding: 12px 8px; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .sidebar-title {
+            font-size: 10px; font-weight: 700; color: var(--gray);
+            text-transform: uppercase; letter-spacing: 1px;
+            text-align: center; padding-bottom: 8px;
+            border-bottom: 1px solid var(--border); margin-bottom: 8px;
+        }
+        .drops-container { display: flex; flex-direction: column; gap: 5px; overflow: hidden; flex: 1; }
+        .drop-card {
+            background: var(--sub); border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px 7px 6px 11px;
+            display: flex; gap: 7px; align-items: center;
+            position: relative; overflow: hidden; animation: dropSlide 0.25s ease;
+        }
+        @keyframes dropSlide {
+            from { opacity: 0; transform: translateY(-15px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .drop-rarity { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+        .drop-img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+        .drop-info { flex: 1; min-width: 0; }
+        .drop-user { font-size: 10px; font-weight: 700; color: var(--accent); }
+        .drop-name { font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .drop-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 1px; }
+        .drop-chance { font-size: 8px; color: var(--gray); }
+        .drop-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+        /* MAIN */
+        .main { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+        #status-banner {
+            text-align: center; font-size: 14px; font-weight: 700;
+            min-height: 20px; padding: 4px;
+        }
+        .text-win { color: var(--win); text-shadow: 0 0 20px rgba(0,230,118,0.5); }
+        .text-lose { color: var(--lose); }
+
+        /* WORKSPACE */
+        .workspace {
+            display: grid; grid-template-columns: 1fr 300px 1fr; gap: 14px; align-items: start;
+        }
+        .ws-card {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px;
+            display: flex; flex-direction: column; align-items: center; min-height: 340px;
+        }
+        .ws-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; align-self: flex-start; }
+
+        .offer-grid {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            justify-content: center; width: 100%;
+            flex: 1; align-content: flex-start; overflow-y: auto; max-height: 200px;
+        }
+        .offer-item {
+            background: var(--sub); border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px; width: 80px; height: 85px;
+            display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; position: relative; transition: border-color 0.2s;
+        }
+        .offer-item:hover { border-color: var(--lose); }
+        .offer-item .ri { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 6px 6px 0 0; }
+        .offer-item img { width: 100%; height: 40px; object-fit: contain; }
+        .offer-item .on { font-size: 8px; color: var(--text); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+        .offer-item .op { font-size: 9px; font-weight: 700; color: var(--accent); }
+        .ws-total { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 10px; }
+        .empty-ph {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            color: var(--gray); font-size: 12px; text-align: center;
+            border: 1px dashed var(--border); border-radius: 8px; width: 100%; padding: 20px;
+        }
+
+        /* WHEEL */
+        .wheel-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .roulette-ring { position: relative; width: 220px; height: 220px; }
+        .roulette-canvas { position: absolute; inset: 0; }
+        .roulette-center {
+            position: absolute; inset: 30px; background: var(--sub);
+            border-radius: 50%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 3; border: 1px solid var(--border);
+        }
+        .roulette-center .pct { font-family: 'Orbitron', sans-serif; font-size: 26px; font-weight: 900; color: var(--accent); line-height: 1; }
+        .roulette-center .lbl { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        .roulette-pointer {
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 8px solid transparent;
+            border-right: 8px solid transparent; border-top: 18px solid var(--accent);
+            z-index: 5; filter: drop-shadow(0 0 6px var(--accent));
+        }
+
+        .presets { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .btn-preset {
+            background: var(--sub); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 10px;
+            font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700;
+            border-radius: 4px; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+        }
+        .btn-preset:hover { border-color: var(--accent); color: var(--accent); }
+
+        .upgrade-controls { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+        .btn-upgrade {
+            width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #000; border: none; padding: 14px; font-family: 'Orbitron', sans-serif;
+            font-size: 13px; font-weight: 900; border-radius: 8px; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 4px 20px rgba(255,210,0,0.25);
+        }
+        .btn-upgrade:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(255,210,0,0.4); }
+        .btn-upgrade:disabled { background: var(--border); color: var(--gray); cursor: not-allowed; box-shadow: none; transform: none; }
+        .fast-roll { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; color: var(--gray); cursor: pointer; }
+        .fast-roll input { accent-color: var(--accent); }
+
+        /* TARGET */
+        .target-card {
+            background: radial-gradient(circle, #1c1f2e 0%, var(--sub) 100%);
+            border: 2px solid var(--border); border-radius: 14px; padding: 20px;
+            width: 100%; display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            position: relative; overflow: hidden; flex: 1; transition: border-color 0.4s;
+        }
+        .target-card .glow-bg {
+            position: absolute; inset: 0; opacity: 0.08;
+            background: radial-gradient(circle at 50% 40%, currentColor 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .target-skin-img { width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; animation: floatY 4s ease-in-out infinite; }
+        .target-skin-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .target-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .target-price { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: var(--accent); }
+
+        /* INVENTORY / MARKET */
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .inv-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; position: relative; }
+        .inv-card h3 {
+            font-size: 12px; font-weight: 700; color: var(--gray);
+            text-transform: uppercase; letter-spacing: 1px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .auth-overlay {
+            position: absolute; inset: 0; z-index: 10; border-radius: 12px;
+            background: rgba(11,12,18,0.95);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 12px; text-align: center; color: var(--gray); font-size: 13px;
+        }
+        .auth-overlay button {
+            background: linear-gradient(135deg, #1b2838, #2a475e);
+            border: 1px solid var(--blue); color: var(--blue);
+            padding: 8px 20px; border-radius: 6px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+        }
+        .skins-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            gap: 7px; max-height: 280px; overflow-y: auto;
+        }
+        .skin-item {
+            background: var(--sub); border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px;
+            display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; height: 110px; position: relative; text-align: center;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .skin-item:hover { border-color: rgba(255,210,0,0.4); }
+        .skin-item.selected { border-color: var(--accent); background: rgba(255,210,0,0.04); }
+        .skin-rarity { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 6px 6px 0 0; }
+        .skin-img { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; margin: 4px 0; }
+        .skin-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .skin-name { font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+        .skin-price { font-size: 10px; font-weight: 700; color: var(--accent); margin-top: 2px; }
+        .btn-withdraw {
+            background: #1a6b3a; color: var(--win); border: 1px solid #2ebd59;
+            border-radius: 4px; font-size: 8px; font-weight: 700;
+            padding: 2px 5px; cursor: pointer; margin-top: 3px; width: 100%;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .btn-withdraw:hover { background: #2ebd59; color: #000; }
+
+        /* INV CONTROLS */
+        .inv-controls { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-sm {
+            padding: 5px 10px; font-size: 11px; background: var(--sub);
+            border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 600; transition: all 0.2s;
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-add-skin {
+            padding: 5px 12px; font-size: 11px;
+            background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.35);
+            color: var(--win); border-radius: 6px; cursor: pointer;
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; transition: all 0.2s;
+        }
+        .btn-add-skin:hover { background: rgba(0,230,118,0.15); border-color: var(--win); }
+
+        .market-header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .market-header h3 { margin: 0; font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+        .search-box {
+            background: var(--sub); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 10px; border-radius: 6px;
+            font-size: 11px; outline: none; flex: 1;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .search-box:focus { border-color: var(--accent); }
+
+        /* LEADERBOARD */
+        .leaderboard-wrap { padding: 20px; max-width: 700px; margin: 0 auto; }
+        .lb-title { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 3px; }
+        .lb-info { font-size: 12px; color: var(--gray); text-align: center; margin-bottom: 20px; }
+        .lb-table { width: 100%; border-collapse: collapse; }
+        .lb-table th { font-size: 10px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        .lb-table td { padding: 10px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid rgba(30,32,48,0.5); }
+        .lb-table tr:hover td { background: rgba(255,210,0,0.03); }
+        .lb-rank { color: var(--gray); font-size: 11px; }
+        .lb-rank.gold { color: #ffd700; font-size: 14px; }
+        .lb-rank.silver { color: #c0c0c0; }
+        .lb-rank.bronze { color: #cd7f32; }
+        .lb-username { font-weight: 700; color: var(--text); }
+        .lb-value { color: var(--win); font-family: 'Orbitron', sans-serif; font-size: 12px; }
+        .lb-attempts { color: var(--gray); font-size: 11px; }
+        .lb-winrate { font-size: 11px; }
+        .lb-winrate.high { color: var(--win); }
+        .lb-winrate.mid { color: var(--accent); }
+        .lb-winrate.low { color: var(--lose); }
+        .lb-me { background: rgba(255,210,0,0.05) !important; }
+        .lb-me td { color: var(--accent) !important; }
+        .my-stats-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .my-stats-title { font-size: 12px; color: var(--gray); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+        .stat-block { background: var(--sub); border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-val { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: var(--accent); }
+        .stat-label { font-size: 10px; color: var(--gray); margin-top: 4px; }
+
+        /* ===== ADMIN PANEL ===== */
+        .admin-wrap { padding: 20px; max-width: 900px; margin: 0 auto; }
+        .admin-header {
+            background: linear-gradient(135deg, rgba(255,0,255,0.08), rgba(255,0,255,0.02));
+            border: 1px solid rgba(255,0,255,0.25);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 16px;
+        }
+        .admin-badge {
+            font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 900;
+            color: var(--admin); border: 1px solid rgba(255,0,255,0.4);
+            padding: 6px 14px; border-radius: 4px; letter-spacing: 2px;
+            background: rgba(255,0,255,0.05);
+            animation: adminPulse 1.5s ease-in-out infinite;
+        }
+        .admin-title { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: var(--admin); }
+        .admin-subtitle { font-size: 12px; color: var(--gray); margin-top: 4px; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .admin-card { background: var(--panel); border: 1px solid rgba(255,0,255,0.15); border-radius: 12px; padding: 18px; }
+        .admin-card-title {
+            font-size: 11px; font-weight: 700; color: var(--admin); text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+        }
+        .admin-section { margin-bottom: 14px; }
+        .admin-label { font-size: 11px; color: var(--gray); margin-bottom: 5px; display: block; }
+        .admin-input {
+            width: 100%; background: var(--sub); border: 1px solid rgba(255,0,255,0.2);
+            color: var(--text); padding: 8px 12px; border-radius: 6px;
+            font-size: 13px; outline: none; font-family: 'Rajdhani', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .admin-input:focus { border-color: var(--admin); }
+        .btn-admin {
+            background: rgba(255,0,255,0.1); border: 1px solid rgba(255,0,255,0.35);
+            color: var(--admin); padding: 9px 18px; border-radius: 6px;
+            font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-admin:hover { background: rgba(255,0,255,0.2); border-color: var(--admin); }
+        .btn-admin.danger { color: var(--lose); border-color: rgba(255,23,68,0.35); background: rgba(255,23,68,0.08); }
+        .btn-admin.danger:hover { background: rgba(255,23,68,0.18); }
+        .btn-admin.success { color: var(--win); border-color: rgba(0,230,118,0.35); background: rgba(0,230,118,0.08); }
+        .btn-admin.success:hover { background: rgba(0,230,118,0.18); }
+        .admin-skin-list {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 6px; max-height: 340px; overflow-y: auto; margin-top: 10px;
+        }
+        .admin-skin-item {
+            background: var(--sub); border: 1px solid rgba(255,0,255,0.12);
+            border-radius: 6px; padding: 5px; text-align: center; cursor: pointer;
+            transition: all 0.2s; position: relative;
+        }
+        .admin-skin-item:hover { border-color: var(--admin); background: rgba(255,0,255,0.05); }
+        .admin-skin-item img { width: 100%; height: 44px; object-fit: contain; }
+        .admin-skin-item .asn { font-size: 8px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-skin-item .asp { font-size: 9px; font-weight: 700; color: var(--admin); }
+        .admin-skin-item .add-overlay {
+            position: absolute; inset: 0; background: rgba(255,0,255,0.15); border-radius: 6px;
+            display: none; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 900; color: var(--admin);
+        }
+        .admin-skin-item:hover .add-overlay { display: flex; }
+        .admin-search { display: flex; gap: 8px; }
+        .admin-log {
+            background: #070810; border: 1px solid rgba(255,0,255,0.15); border-radius: 6px;
+            padding: 10px; max-height: 180px; overflow-y: auto; font-size: 11px;
+            font-family: monospace; color: var(--gray); line-height: 1.6;
+        }
+        .admin-log .log-ok { color: var(--win); }
+        .admin-log .log-info { color: var(--blue); }
+        .admin-log .log-warn { color: var(--accent); }
+        .admin-stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .admin-stat {
+            background: var(--sub); border: 1px solid rgba(255,0,255,0.1);
+            border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 80px;
+        }
+        .admin-stat-v { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: var(--admin); }
+        .admin-stat-l { font-size: 9px; color: var(--gray); margin-top: 2px; }
+        .admin-qty { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+        .admin-qty-btn { background: var(--sub); border: 1px solid rgba(255,0,255,0.2); color: var(--admin); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700; display:flex;align-items:center;justify-content:center; }
+        .admin-qty-num { background: var(--sub); border: 1px solid rgba(255,0,255,0.2); color: var(--text); width: 40px; text-align: center; padding: 4px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; }
+
+        /* ADD SKIN MODAL */
+        .add-skin-wrap { padding: 20px; max-width: 900px; margin: 0 auto; }
+        .add-skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px,1fr)); gap: 8px; max-height: 400px; overflow-y: auto; }
+
+        /* MODALS */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88); z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px; width: 360px;
+            position: relative; animation: modalPop 0.3s cubic-bezier(0.175,0.885,0.32,1.2);
+        }
+        @keyframes modalPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-close { position: absolute; top: 12px; right: 16px; cursor: pointer; font-size: 20px; color: var(--gray); background: none; border: none; }
+        .modal-title { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 18px; }
+        .modal-input { width: 100%; background: var(--sub); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 15px; outline: none; margin-bottom: 14px; font-family: 'Rajdhani', sans-serif; }
+        .modal-input:focus { border-color: var(--accent); }
+        .modal-label { font-size: 12px; color: var(--gray); margin-bottom: 5px; display: block; }
+        .btn-primary { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; border: none; padding: 12px; font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 900; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* WIN/LOSE MODALS */
+        .win-modal-box {
+            background: radial-gradient(circle at 50% 0%, rgba(0,230,118,0.1) 0%, var(--panel) 60%);
+            border: 2px solid var(--win); box-shadow: 0 0 40px rgba(0,230,118,0.25);
+            text-align: center; padding: 30px;
+        }
+        .win-modal-box .modal-title { color: var(--win); }
+        .lose-modal-box {
+            background: radial-gradient(circle at 50% 0%, rgba(255,23,68,0.07) 0%, var(--panel) 60%);
+            border: 2px solid rgba(255,23,68,0.3); text-align: center; padding: 30px;
+        }
+        .result-skin-img { width: 120px; height: 120px; object-fit: contain; margin: 10px auto; display: block; }
+        .result-skin-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .result-skin-price { font-size: 14px; color: var(--accent); font-weight: 800; font-family: 'Orbitron', sans-serif; }
+        .result-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .btn-withdraw-modal { flex: 1; background: #1a6b3a; color: var(--win); border: 1px solid var(--win); padding: 10px; border-radius: 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; }
+        .btn-keep-modal { flex: 1; background: var(--sub); color: var(--gray); border: 1px solid var(--border); padding: 10px; border-radius: 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; }
+
+        /* STEAM NOTIF */
+        .steam-notif {
+            position: fixed; bottom: -120px; left: 20px; width: 320px;
+            background: #1b2838; border: 1px solid #2a475e; border-left: 4px solid var(--blue); color: #c7d5e0;
+            padding: 14px 18px; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+            cursor: pointer; z-index: 300; transition: bottom 0.4s cubic-bezier(0.1,0.8,0.2,1);
+            display: flex; gap: 12px; align-items: center;
+        }
+        .steam-notif.show { bottom: 20px; }
+        .steam-notif-bell { font-size: 28px; color: var(--blue); }
+        .steam-notif-title { font-weight: 700; color: #fff; font-size: 13px; }
+        .steam-notif-sub { font-size: 11px; margin-top: 2px; color: #a3b2c1; }
+
+        /* STEAM TRADE */
+        .steam-trade-box { background: #1b2838; border: 2px solid #2a475e; width: 560px; border-radius: 4px; color: #c7d5e0; padding: 24px; }
+        .steam-trade-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 18px; }
+        .steam-warning { background: rgba(255,100,0,0.1); border: 1px solid rgba(255,100,0,0.3); border-radius: 4px; padding: 10px 14px; font-size: 11px; margin-bottom: 16px; line-height: 1.5; }
+        .steam-grids { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .steam-grid-card { background: #101822; border: 1px solid #2a475e; border-radius: 4px; padding: 14px; display: flex; flex-direction: column; align-items: center; min-height: 130px; justify-content: center; }
+        .steam-checkbox-label { font-size: 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .steam-checkbox-label input { accent-color: #2ebd59; }
+        .btn-steam-accept { width: 100%; background: linear-gradient(to right, #47b28f, #2e8b57); color: #fff; border: none; padding: 12px; font-weight: 700; border-radius: 3px; cursor: pointer; font-size: 14px; }
+        .btn-steam-accept:disabled { background: #2a3d2a; color: #5a7a5a; cursor: not-allowed; }
+
+        /* DEPOSIT */
+        .deposit-box { text-align: center; }
+        .deposit-amount-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 14px; }
+        .btn-amount { background: var(--sub); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .btn-amount:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-amount.selected { border-color: var(--accent); background: rgba(255,210,0,0.1); color: var(--accent); }
+
+        /* COMP */
+        .comp-box { background: radial-gradient(circle at 50% 0%, rgba(255,210,0,0.12) 0%, var(--panel) 60%); border: 2px solid var(--accent); box-shadow: 0 0 30px rgba(255,210,0,0.2); text-align: center; }
+        .comp-box .modal-title { color: var(--accent); }
+
+        /* ADD SKIN MODAL LARGE */
+        .modal-box-lg { width: 600px; max-width: 96vw; max-height: 80vh; overflow-y: auto; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--sub); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+
+        /* PRICE FETCH STATUS */
+        .price-badge {
+            font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+            margin-left: 6px; vertical-align: middle;
+        }
+        .price-badge.live { background: rgba(0,230,118,0.15); color: var(--win); border: 1px solid rgba(0,230,118,0.3); }
+        .price-badge.cached { background: rgba(255,210,0,0.1); color: var(--accent); border: 1px solid rgba(255,210,0,0.25); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">UPGRADE<span>R</span><sup>PRO 3.0</sup><span class="admin-tag">◆ ADMIN</span></div>
+    <nav class="header-nav">
+        <button class="nav-btn tab-active" onclick="switchTab('upgrader', this)">⚡ Апгрейдер</button>
+        <button class="nav-btn" onclick="switchTab('leaderboard', this)">🏆 Лідерборд</button>
+        <button class="nav-btn admin-tab" onclick="switchTab('admin', this)">🛠 АДМІН</button>
+    </nav>
+    <div class="header-right">
+        <div class="balance-chip" id="balance-chip">💰 $0.00</div>
+        <button class="btn-primary" onclick="openModal('modal-deposit')" style="padding:7px 14px;font-size:12px;margin:0;">💳 Поповнити</button>
+        <button class="btn-steam" id="btn-steam-login" onclick="openSteamAuth()">
+            <svg viewBox="0 0 24 24" width="16" fill="#66c0f4"><path d="M12 .3C5.4.3 0 5.7 0 12.3c0 5.4 3.6 10 8.5 11.5l.1-.1v-1.6c-.4-.1-.8-.3-1.1-.5-.6-.5-1-1.3-1-2.2 0-1.1.8-2.1 1.8-2.5.2-.5.6-1 1.1-1.3v-2.3c-.3-.1-.7-.3-.9-.5-.6-.5-1-1.3-1-2.2 0-1.4 1.2-2.5 2.5-2.5 1.4 0 2.5 1.1 2.5 2.5 0 .8-.4 1.5-.9 1.9v2.3c.5.3.9.7 1.1 1.3 1 .4 1.8 1.4 1.8 2.5 0 .9-.4 1.7-1 2.2-.3.3-.7.4-1.2.5v1.6c.05.04.09.08.1.1C17.4 22.3 21 17.7 21 12.3 21 5.7 18.6.3 12 .3z"/></svg>
+            Увійти в Steam
+        </button>
+        <div class="user-pill" id="user-pill" style="display:none;">
+            <img src="https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" id="user-avatar" alt="">
+            <span id="user-name">—</span>
+        </div>
+    </div>
+</header>
+
+<!-- ========== UPGRADER TAB ========== -->
+<div class="tab-content active" id="tab-upgrader">
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-title">🔴 Live Drops</div>
+        <div class="drops-container" id="drops-container"></div>
+    </aside>
+    <main class="main">
+        <div id="status-banner">Завантаження бази скінів...</div>
+        <div class="workspace">
+            <!-- LEFT -->
+            <div class="ws-card">
+                <div class="ws-title">Ваші скіни</div>
+                <div class="offer-grid" id="offer-list">
+                    <div class="empty-ph">Оберіть скіни з інвентарю знизу</div>
+                </div>
+                <div class="ws-total" id="offer-value">$0.00</div>
+            </div>
+            <!-- CENTER -->
+            <div class="ws-card" style="justify-content: space-between;">
+                <div class="wheel-wrap">
+                    <div class="roulette-ring">
+                        <canvas class="roulette-canvas" id="wheel-canvas" width="220" height="220"></canvas>
+                        <div class="roulette-center">
+                            <div class="pct" id="chance-pct">0%</div>
+                            <div class="lbl" id="chance-lbl">шанс</div>
+                        </div>
+                    </div>
+                    <div class="presets">
+                        <button class="btn-preset" onclick="applyPreset(2)">x2</button>
+                        <button class="btn-preset" onclick="applyPreset(5)">x5</button>
+                        <button class="btn-preset" onclick="applyPreset(10)">x10</button>
+                        <button class="btn-preset" onclick="applyPresetChance(30)">30%</button>
+                        <button class="btn-preset" onclick="applyPresetChance(50)">50%</button>
+                        <button class="btn-preset" onclick="applyPresetChance(75)">75%</button>
+                    </div>
+                </div>
+                <div class="upgrade-controls">
+                    <label class="fast-roll"><input type="checkbox" id="fast-roll"> Швидкий режим ⚡</label>
+                    <button class="btn-upgrade" id="btn-upgrade" disabled>⬆ UPGRADE</button>
+                </div>
+            </div>
+            <!-- RIGHT -->
+            <div class="ws-card">
+                <div class="ws-title">Ціль апгрейду</div>
+                <div id="target-display" style="width:100%; flex:1; display:flex; flex-direction:column;">
+                    <div class="empty-ph">Оберіть скін з маркету</div>
+                </div>
+                <div class="ws-total" id="target-value">$0.00</div>
+            </div>
+        </div>
+
+        <!-- INVENTORIES -->
+        <div class="bottom-section">
+            <!-- MY INV -->
+            <div class="inv-card">
+                <div class="auth-overlay" id="inv-lock">
+                    <div>🔒 Авторизуйтесь через Steam для доступу до інвентарю</div>
+                    <button onclick="openSteamAuth()">Увійти через Steam</button>
+                </div>
+                <h3>
+                    <span>Мій інвентар <span id="inv-count">(0)</span></span>
+                    <span style="font-size:11px; color:var(--gray);" id="inv-value">$0.00</span>
+                </h3>
+                <div class="inv-controls">
+                    <button class="btn-sm" onclick="sortInventory('asc')">💰↑</button>
+                    <button class="btn-sm" onclick="sortInventory('desc')">💰↓</button>
+                    <button class="btn-add-skin" onclick="openAddSkinModal()">＋ Додати скін</button>
+                </div>
+                <div class="skins-grid" id="my-skins-grid"></div>
+            </div>
+            <!-- MARKET -->
+            <div class="inv-card">
+                <div class="auth-overlay" id="market-lock">
+                    <div>🔒 Авторизуйтесь через Steam щоб переглядати маркет</div>
+                    <button onclick="openSteamAuth()">Увійти через Steam</button>
+                </div>
+                <div class="market-header">
+                    <h3>
+                        Маркет
+                        <span id="price-source-badge" class="price-badge cached">розрахункові ціни</span>
+                    </h3>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="text" id="market-search" class="search-box" placeholder="🔍 Пошук скіну..." oninput="handleSearch()">
+                        <button class="btn-sm" onclick="sortMarket('asc')">💰↑</button>
+                        <button class="btn-sm" onclick="sortMarket('desc')">💰↓</button>
+                    </div>
+                </div>
+                <div class="skins-grid" id="market-grid"></div>
+            </div>
+        </div>
+    </main>
+</div>
+</div>
+
+<!-- ========== LEADERBOARD TAB ========== -->
+<div class="tab-content" id="tab-leaderboard">
+    <div class="leaderboard-wrap">
+        <div class="lb-title">🏆 Топ Гравці</div>
+        <div class="lb-info">Рейтинг зберігається у браузері.</div>
+        <div class="my-stats-card">
+            <div class="my-stats-title">Моя статистика</div>
+            <div class="stats-grid">
+                <div class="stat-block"><div class="stat-val" id="s-total">0</div><div class="stat-label">Апгрейдів</div></div>
+                <div class="stat-block"><div class="stat-val" id="s-wins">0</div><div class="stat-label">Виграшів</div></div>
+                <div class="stat-block"><div class="stat-val" id="s-wr">0%</div><div class="stat-label">Win Rate</div></div>
+                <div class="stat-block"><div class="stat-val" id="s-best">$0</div><div class="stat-label">Найбільший виш</div></div>
+            </div>
+        </div>
+        <table class="lb-table">
+            <thead><tr><th>#</th><th>Гравець</th><th>Кращий виш</th><th>Апгрейдів</th><th>Win Rate</th></tr></thead>
+            <tbody id="lb-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========== ADMIN TAB ========== -->
+<div class="tab-content" id="tab-admin">
+    <div class="admin-wrap">
+        <div class="admin-header">
+            <div class="admin-badge">ADMIN</div>
+            <div>
+                <div class="admin-title">Панель розробника</div>
+                <div class="admin-subtitle" id="admin-logged-as">Увійшов як: —</div>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="admin-stats-row" id="admin-stats-row">
+            <div class="admin-stat"><div class="admin-stat-v" id="adm-inv-count">0</div><div class="admin-stat-l">Скінів в інвентарі</div></div>
+            <div class="admin-stat"><div class="admin-stat-v" id="adm-inv-val">$0</div><div class="admin-stat-l">Вартість інвентарю</div></div>
+            <div class="admin-stat"><div class="admin-stat-v" id="adm-market-count">0</div><div class="admin-stat-l">Скінів в маркеті</div></div>
+            <div class="admin-stat"><div class="admin-stat-v" id="adm-upgrades">0</div><div class="admin-stat-l">Апгрейдів виконано</div></div>
+        </div>
+
+        <div class="admin-grid">
+            <!-- GIVE SKINS -->
+            <div class="admin-card">
+                <div class="admin-card-title">🎁 Видати скін напряму</div>
+                <div class="admin-section">
+                    <label class="admin-label">Пошук скіна в базі</label>
+                    <div class="admin-search">
+                        <input type="text" class="admin-input" id="admin-skin-search" placeholder="AWP, AK-47, ★ Knife..." oninput="adminSearchSkins()">
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <label class="admin-label">Кількість <small style="color:var(--gray)">(на клік)</small></label>
+                    <div class="admin-qty">
+                        <button class="admin-qty-btn" onclick="changeAdminQty(-1)">−</button>
+                        <input type="number" class="admin-qty-num" id="admin-qty" value="1" min="1" max="10">
+                        <button class="admin-qty-btn" onclick="changeAdminQty(1)">+</button>
+                        <span style="font-size:11px;color:var(--gray);margin-left:4px;">шт.</span>
+                    </div>
+                </div>
+                <div class="admin-skin-list" id="admin-skin-list"></div>
+            </div>
+
+            <!-- CUSTOM SKIN -->
+            <div class="admin-card" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="admin-card-title">✏️ Власний скін</div>
+                <div>
+                    <label class="admin-label">Назва</label>
+                    <input class="admin-input" id="adm-custom-name" placeholder="AK-47 | Redline (FN)">
+                </div>
+                <div>
+                    <label class="admin-label">Ціна ($)</label>
+                    <input class="admin-input" type="number" id="adm-custom-price" placeholder="99.99">
+                </div>
+                <div>
+                    <label class="admin-label">Колір рідкості (hex)</label>
+                    <input class="admin-input" id="adm-custom-color" placeholder="#eb4b4b" value="#eb4b4b">
+                </div>
+                <div>
+                    <label class="admin-label">URL зображення (необов'язково)</label>
+                    <input class="admin-input" id="adm-custom-img" placeholder="https://...">
+                </div>
+                <button class="btn-admin success" onclick="adminAddCustomSkin()">＋ Додати в інвентар</button>
+                <hr style="border-color:rgba(255,0,255,0.1);margin:4px 0;">
+                <div class="admin-card-title">🗑 Управління інвентарем</div>
+                <button class="btn-admin danger" onclick="adminClearInventory()">Очистити весь інвентар</button>
+                <button class="btn-admin" onclick="adminReloadSkins()">♻ Перезавантажити базу</button>
+                <button class="btn-admin" onclick="adminAddAllRareSkins()">💎 Видати по 1 рідкісному</button>
+            </div>
+        </div>
+
+        <!-- FORCE WIN -->
+        <div class="admin-card" style="margin-top:16px; border-color:rgba(0,230,118,0.3);">
+            <div class="admin-card-title" style="color:var(--win);">⚡ Маніпуляція результатом</div>
+            <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.6;">
+                Наступний апгрейд буде <span style="color:var(--win);font-weight:700;">виграшним</span> або <span style="color:var(--lose);font-weight:700;">програшним</span> незалежно від відсотка на колесі.
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-admin success" id="btn-force-win" onclick="setForceWin(true)" style="flex:1;padding:12px;">✅ ГАРАНТОВАНИЙ ВИГРАШ</button>
+                <button class="btn-admin danger" id="btn-force-lose" onclick="setForceWin(false)" style="flex:1;padding:12px;">💀 ГАРАНТОВАНИЙ ПРОГРАШ</button>
+                <button class="btn-admin" id="btn-force-off" onclick="setForceWin(null)" style="padding:12px;min-width:70px;">🎲 АВТО</button>
+            </div>
+            <div id="force-win-status" style="margin-top:10px;font-size:12px;text-align:center;font-weight:700;color:var(--gray);">
+                Режим: 🎲 Авто (випадковий результат)
+            </div>
+        </div>
+
+        <!-- LOG -->
+        <div class="admin-card" style="margin-top:16px;">
+            <div class="admin-card-title">📋 Лог дій</div>
+            <div class="admin-log" id="admin-log">
+                <span class="log-info">[SYSTEM] Адмін-панель активована.</span><br>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- STEAM AUTH -->
+<div class="modal-overlay" id="modal-steam-auth">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeModal('modal-steam-auth')">×</button>
+        <div class="modal-title" style="color:var(--blue);">🔵 STEAM LOGIN</div>
+        <label class="modal-label">Нікнейм Steam</label>
+        <input class="modal-input" id="steam-user-input" placeholder="Ваш нікнейм" onkeydown="if(event.key==='Enter')doSteamLogin()">
+        <label class="modal-label">Пароль</label>
+        <input class="modal-input" type="password" placeholder="••••••••">
+        <button class="btn-primary" style="background:linear-gradient(135deg,#1b2838,#2a475e); color:var(--blue); border:1px solid var(--blue);" onclick="doSteamLogin()">Увійти</button>
+    </div>
+</div>
+
+<!-- DEPOSIT -->
+<div class="modal-overlay" id="modal-deposit">
+    <div class="modal-box deposit-box">
+        <button class="modal-close" onclick="closeModal('modal-deposit')">×</button>
+        <div class="modal-title">💳 Google Pay Депозит</div>
+        <div id="gpay-form-state">
+            <div class="deposit-amount-btns">
+                <button class="btn-amount" onclick="setDepositAmt(10,this)">$10</button>
+                <button class="btn-amount" onclick="setDepositAmt(25,this)">$25</button>
+                <button class="btn-amount" onclick="setDepositAmt(50,this)">$50</button>
+                <button class="btn-amount" onclick="setDepositAmt(100,this)">$100</button>
+                <button class="btn-amount" onclick="setDepositAmt(250,this)">$250</button>
+                <button class="btn-amount" onclick="setDepositAmt(500,this)">$500</button>
+            </div>
+            <label class="modal-label">Або введіть суму ($)</label>
+            <input class="modal-input" id="deposit-amt" type="number" value="50" min="1" max="9999">
+            <p style="font-size:11px;color:var(--gray);margin:12px 0;text-align:center;line-height:1.5;">💡 Гроші перетворяться у скіни на вашому балансі.</p>
+            <button class="btn-primary" onclick="doDeposit()">Оплатити через Google Pay</button>
+        </div>
+        <div id="gpay-processing-state" style="display:none;text-align:center;padding:20px 0;">
+            <div style="width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite;"></div>
+            <div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:20px;" id="gpay-status">Перевірка платежу...</div>
+            <div style="display:flex;justify-content:space-around;gap:15px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;" id="step-1"><div style="width:40px;height:40px;border-radius:50%;background:var(--sub);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;">1</div><div style="font-size:10px;color:var(--gray);">Перевірка</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.5;" id="step-2"><div style="width:40px;height:40px;border-radius:50%;background:var(--sub);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;">2</div><div style="font-size:10px;color:var(--gray);">Обробка</div></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.5;" id="step-3"><div style="width:40px;height:40px;border-radius:50%;background:var(--sub);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;">✓</div><div style="font-size:10px;color:var(--gray);">Успіх</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD SKIN MODAL -->
+<div class="modal-overlay" id="modal-add-skin">
+    <div class="modal-box modal-box-lg">
+        <button class="modal-close" onclick="closeModal('modal-add-skin')">×</button>
+        <div class="modal-title">＋ Додати скін в інвентар</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <input type="text" class="modal-input" id="add-skin-search" placeholder="Пошук скіна..." oninput="renderAddSkinGrid()" style="margin:0;flex:1;">
+            <select id="add-skin-sort" onchange="renderAddSkinGrid()" style="background:var(--sub);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:13px;outline:none;">
+                <option value="name">За назвою</option>
+                <option value="asc">Ціна ↑</option>
+                <option value="desc">Ціна ↓</option>
+            </select>
+        </div>
+        <p style="font-size:11px;color:var(--gray);margin-bottom:10px;">Клікни на скін щоб додати в інвентар. Можна додавати декілька.</p>
+        <div class="add-skin-grid" id="add-skin-grid"></div>
+    </div>
+</div>
+
+<!-- WIN RESULT -->
+<div class="modal-overlay" id="modal-win">
+    <div class="modal-box win-modal-box">
+        <div class="modal-title">🎉 UPGRADE УСПІШНИЙ!</div>
+        <img class="result-skin-img" id="win-img" src="" alt="">
+        <div class="result-skin-name" id="win-name"></div>
+        <div class="result-skin-price" id="win-price"></div>
+        <div class="result-actions">
+            <button class="btn-withdraw-modal" onclick="withdrawWonSkin()">📤 Вивести Steam</button>
+            <button class="btn-keep-modal" onclick="closeModal('modal-win')">🎒 Залишити</button>
+        </div>
+    </div>
+</div>
+
+<!-- LOSE RESULT -->
+<div class="modal-overlay" id="modal-lose">
+    <div class="modal-box lose-modal-box">
+        <div class="modal-title" style="color:var(--lose);">💀 НЕВДАЧА</div>
+        <div style="font-size:40px; margin: 8px 0;">😢</div>
+        <div style="font-size:13px; color:var(--gray); margin-bottom:14px;" id="lose-msg"></div>
+        <button class="btn-primary" onclick="closeModal('modal-lose')" style="background:var(--sub); border:1px solid var(--border); color:var(--gray);">Закрити</button>
+    </div>
+</div>
+
+<!-- COMPENSATION -->
+<div class="modal-overlay" id="modal-comp">
+    <div class="modal-box comp-box">
+        <div class="modal-title">🎁 КОМПЕНСАЦІЯ!</div>
+        <div style="font-size:12px; color:var(--gray); margin-bottom:16px;">Апгрейд не вдався, але спрацювала система захисту!</div>
+        <img class="result-skin-img" id="comp-img" src="" alt="">
+        <div class="result-skin-name" id="comp-name"></div>
+        <div class="result-skin-price" id="comp-price"></div>
+        <div class="result-actions">
+            <button class="btn-withdraw-modal" onclick="withdrawCompSkin()">📤 Вивести Steam</button>
+            <button class="btn-keep-modal" onclick="closeModal('modal-comp')">🎒 Залишити</button>
+        </div>
+    </div>
+</div>
+
+<!-- STEAM NOTIF -->
+<div class="steam-notif" id="steam-notif" onclick="openTradeModal()">
+    <div class="steam-notif-bell">✉</div>
+    <div>
+        <div class="steam-notif-title">Пропозиція обміну готова!</div>
+        <div class="steam-notif-sub">Натисніть щоб підтвердити у Steam</div>
+    </div>
+</div>
+
+<!-- STEAM TRADE -->
+<div class="modal-overlay" id="modal-trade">
+    <div class="steam-trade-box">
+        <div class="steam-trade-header">
+            <span>🎮 Steam — Пропозиція обміну</span>
+            <span style="cursor:pointer; font-size:20px;" onclick="closeModal('modal-trade')">×</span>
+        </div>
+        <div class="steam-warning">⚠️ <strong>Односторонній обмін (Подарунок)</strong> — UPGRADER.PRO надсилає вам скін безкоштовно.</div>
+        <div class="steam-grids">
+            <div class="steam-grid-card">
+                <span style="font-size:10px; color:#5c7e10; margin-bottom:8px; font-weight:700; text-transform:uppercase;">Ви отримаєте:</span>
+                <img id="trade-img" src="" style="width:80px; height:80px; object-fit:contain;">
+                <div id="trade-name" style="font-size:11px; font-weight:700; margin-top:6px; color:#fff; text-align:center;"></div>
+            </div>
+            <div class="steam-grid-card" style="justify-content:center; text-align:center;">
+                <span style="font-size:11px; color:#3d4b56; font-weight:700; text-transform:uppercase;">Ваш інвентар:</span>
+                <span style="font-size:13px; color:#3d4b56; margin-top:8px; font-weight:700;">Нічого не вибрано</span>
+            </div>
+        </div>
+        <label class="steam-checkbox-label">
+            <input type="checkbox" id="trade-confirm" onchange="document.getElementById('btn-accept').disabled=!this.checked">
+            Я підтверджую, що це подарунок і нічого не виплачую.
+        </label>
+        <button class="btn-steam-accept" id="btn-accept" disabled onclick="acceptTrade()">Прийняти обмін</button>
+    </div>
+</div>
+
+<script>
+/* ====== AUDIO ====== */
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTick() {
+    try { initAudio(); const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.connect(g);g.connect(audioCtx.destination); o.frequency.value=1200+Math.random()*400; g.gain.setValueAtTime(0.015,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.04); o.start();o.stop(audioCtx.currentTime+0.04); } catch(e){}
+}
+function playWin() {
+    try { initAudio(); const now=audioCtx.currentTime; [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>{ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.connect(g);g.connect(audioCtx.destination); o.type='sine';o.frequency.value=f; g.gain.setValueAtTime(0,now+i*.07);g.gain.linearRampToValueAtTime(0.06,now+i*.07+.02);g.gain.exponentialRampToValueAtTime(0.0001,now+i*.07+.3); o.start(now+i*.07);o.stop(now+i*.07+.35); }); } catch(e){}
+}
+function playLose() {
+    try { initAudio(); const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.connect(g);g.connect(audioCtx.destination); o.type='sawtooth'; o.frequency.setValueAtTime(200,audioCtx.currentTime);o.frequency.linearRampToValueAtTime(60,audioCtx.currentTime+.5); g.gain.setValueAtTime(0.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+.5); o.start();o.stop(audioCtx.currentTime+.5); } catch(e){}
+}
+function playSteamChime() {
+    try { initAudio(); const now=audioCtx.currentTime; [[880,now],[1046.5,now+.1]].forEach(([f,t])=>{ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.connect(g);g.connect(audioCtx.destination); o.frequency.value=f; g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.04,t+.02);g.gain.exponentialRampToValueAtTime(0.0001,t+.35); o.start(t);o.stop(t+.4); }); } catch(e){}
+}
+function playAdminChime() {
+    try { initAudio(); const now=audioCtx.currentTime; [440,880,1100,1320].forEach((f,i)=>{ const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.connect(g);g.connect(audioCtx.destination); o.type='triangle';o.frequency.value=f; g.gain.setValueAtTime(0,now+i*.06);g.gain.linearRampToValueAtTime(0.05,now+i*.06+.02);g.gain.exponentialRampToValueAtTime(0.0001,now+i*.06+.25); o.start(now+i*.06);o.stop(now+i*.06+.3); }); } catch(e){}
+}
+
+/* ====== STATE ====== */
+let myInventory = [];
+let marketSkins = [];
+let selectedOfferIds = [];
+let selectedTargetId = null;
+let isSpinning = false;
+let isLoggedIn = false;
+let isAdmin = false;
+let currentUser = null;
+let activeWithdrawSkin = null;
+let nextId = 1;
+let totalUpgrades = 0;
+
+/* Fallback image */
+const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='60' viewBox='0 0 80 60'%3E%3Crect width='80' height='60' fill='%230f1018'/%3E%3Ctext x='40' y='35' text-anchor='middle' fill='%236b7280' font-size='24'%3E🔫%3C/text%3E%3C/svg%3E";
+
+function safeImg(img) { return img && img.startsWith('http') ? img : FALLBACK_IMG; }
+
+/* Attach error handler to images */
+function fixImgErrors(container) {
+    container.querySelectorAll('img').forEach(img => {
+        img.onerror = () => { img.src = FALLBACK_IMG; img.onerror = null; };
+    });
+}
+
+/* ====== LEADERBOARD ====== */
+const LB_KEY = 'upgrader_lb_v3';
+function getLB() { try { return JSON.parse(localStorage.getItem(LB_KEY) || '{}'); } catch { return {}; } }
+function saveLB(data) { localStorage.setItem(LB_KEY, JSON.stringify(data)); }
+function updateLBEntry(username, isWin, winValue) {
+    const lb = getLB();
+    if (!lb[username]) lb[username] = { wins: 0, total: 0, bestWin: 0 };
+    lb[username].total++;
+    if (isWin && winValue > lb[username].bestWin) lb[username].bestWin = winValue;
+    if (isWin) lb[username].wins++;
+    saveLB(lb);
+}
+function renderLB() {
+    const lb = getLB();
+    const entries = Object.entries(lb).map(([u,d]) => ({ u, ...d })).sort((a,b) => b.bestWin - a.bestWin);
+    const myName = currentUser;
+    if (myName && lb[myName]) {
+        const d = lb[myName];
+        const wr = d.total ? Math.round(d.wins/d.total*100) : 0;
+        document.getElementById('s-total').textContent = d.total;
+        document.getElementById('s-wins').textContent = d.wins;
+        document.getElementById('s-wr').textContent = wr + '%';
+        document.getElementById('s-best').textContent = '$' + d.bestWin.toFixed(0);
+    }
+    const tbody = document.getElementById('lb-body');
+    tbody.innerHTML = '';
+    const medals = ['🥇','🥈','🥉'];
+    entries.forEach((e, i) => {
+        const wr = e.total ? Math.round(e.wins/e.total*100) : 0;
+        const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        const wrClass = wr>=60?'high':wr>=40?'mid':'low';
+        const isMe = myName && e.u === myName;
+        const tr = document.createElement('tr');
+        if (isMe) tr.className = 'lb-me';
+        tr.innerHTML = `<td class="lb-rank ${rankClass}">${medals[i]||(i+1)}</td><td class="lb-username">${e.u}${isMe?' (ти)':''}</td><td class="lb-value">$${e.bestWin.toFixed(2)}</td><td class="lb-attempts">${e.total}</td><td class="lb-winrate ${wrClass}">${wr}%</td>`;
+        tbody.appendChild(tr);
+    });
+    if (!entries.length) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px;">Ще немає результатів. Грай першим!</td></tr>';
+}
+
+/* ====== ADMIN PANEL ====== */
+function activateAdmin(username) {
+    isAdmin = true;
+    document.body.classList.add('admin-mode');
+    playAdminChime();
+    document.getElementById('admin-logged-as').textContent = `Увійшов як: ${username} — права адміністратора активні`;
+    adminLog(`Адмін-панель активована для користувача: ${username}`, 'ok');
+    adminLog(`База містить ${marketSkins.length} скінів`, 'info');
+    updateAdminStats();
+    adminSearchSkins();
+}
+
+function adminLog(msg, type = 'info') {
+    const log = document.getElementById('admin-log');
+    const time = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const cls = type === 'ok' ? 'log-ok' : type === 'warn' ? 'log-warn' : 'log-info';
+    log.innerHTML += `<span class="${cls}">[${time}] ${msg}</span><br>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateAdminStats() {
+    document.getElementById('adm-inv-count').textContent = myInventory.length;
+    document.getElementById('adm-inv-val').textContent = '$' + myInventory.reduce((a,b) => a+b.price, 0).toFixed(0);
+    document.getElementById('adm-market-count').textContent = marketSkins.length;
+    document.getElementById('adm-upgrades').textContent = totalUpgrades;
+}
+
+function adminSearchSkins() {
+    const q = (document.getElementById('admin-skin-search')?.value || '').toLowerCase();
+    const results = q ? marketSkins.filter(s => s.name.toLowerCase().includes(q)) : marketSkins.slice(0, 60);
+    const list = document.getElementById('admin-skin-list');
+    list.innerHTML = '';
+    results.forEach(skin => {
+        const div = document.createElement('div');
+        div.className = 'admin-skin-item';
+        div.innerHTML = `
+            <div class="skin-rarity" style="background:${skin.rarity_color}"></div>
+            <img src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+            <div class="asn">${skin.name}</div>
+            <div class="asp">$${skin.price.toFixed(2)}</div>
+            <div class="add-overlay">＋</div>
+        `;
+        div.onclick = () => {
+            const qty = parseInt(document.getElementById('admin-qty').value) || 1;
+            for (let i = 0; i < qty; i++) {
+                myInventory.push({ id: nextId++, name: skin.name, price: skin.price, rarity_color: skin.rarity_color, image: skin.image });
+            }
+            renderInventory(); updateWorkspace(); updateAdminStats();
+            adminLog(`Видано: ${skin.name} × ${qty} ($${(skin.price * qty).toFixed(2)})`, 'ok');
+            div.style.background = 'rgba(255,0,255,0.15)';
+            setTimeout(() => div.style.background = '', 300);
+        };
+        list.appendChild(div);
+    });
+}
+
+function changeAdminQty(delta) {
+    const inp = document.getElementById('admin-qty');
+    inp.value = Math.max(1, Math.min(10, (parseInt(inp.value)||1) + delta));
+}
+
+function adminAddCustomSkin() {
+    const name = document.getElementById('adm-custom-name').value.trim();
+    const price = parseFloat(document.getElementById('adm-custom-price').value);
+    const color = document.getElementById('adm-custom-color').value.trim() || '#eb4b4b';
+    const img = document.getElementById('adm-custom-img').value.trim() || FALLBACK_IMG;
+    if (!name || !price || price <= 0) { alert('Введіть назву та ціну'); return; }
+    myInventory.push({ id: nextId++, name, price, rarity_color: color, image: img });
+    renderInventory(); updateWorkspace(); updateAdminStats();
+    adminLog(`Власний скін додано: "${name}" за $${price.toFixed(2)}`, 'ok');
+    document.getElementById('adm-custom-name').value = '';
+    document.getElementById('adm-custom-price').value = '';
+    document.getElementById('adm-custom-img').value = '';
+}
+
+function adminClearInventory() {
+    if (!confirm('Очистити весь інвентар?')) return;
+    myInventory = [];
+    selectedOfferIds = [];
+    renderInventory(); updateWorkspace(); updateAdminStats();
+    adminLog('Інвентар очищено', 'warn');
+}
+
+function adminReloadSkins() {
+    adminLog('Перезавантаження бази скінів...', 'info');
+    loadMarketSkins(true);
+}
+
+function adminAddAllRareSkins() {
+    const rare = marketSkins.filter(s => s.rarity_color === '#eb4b4b').slice(0, 8);
+    rare.forEach(skin => myInventory.push({ id: nextId++, name: skin.name, price: skin.price, rarity_color: skin.rarity_color, image: skin.image }));
+    renderInventory(); updateWorkspace(); updateAdminStats();
+    adminLog(`Додано ${rare.length} рідкісних скінів`, 'ok');
+}
+
+/* ====== INVENTORY ====== */
+function loadInventory() {
+    myInventory = [
+        { id: nextId++, name: "AWP | Atheris", price: 8.50, rarity_color: "#8847ff", image: "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_awp_hy_atheris_light_png.png" },
+        { id: nextId++, name: "AK-47 | Slate", price: 4.20, rarity_color: "#4b69ff", image: "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_ak47_cu_ak47_slate_light_png.png" },
+        { id: nextId++, name: "M4A1-S | Basilisk", price: 12.80, rarity_color: "#4b69ff", image: "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_m4a1_silencer_cu_m4a1_s_basilisk_light_png.png" },
+        { id: nextId++, name: "Desert Eagle | Code Red", price: 22.00, rarity_color: "#eb4b4b", image: "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_deagle_cu_deagle_aureus_light_png.png" }
+    ];
+}
+
+/* ====== PRICE CALC (fallback) ====== */
+function calcPrice(id, rarityId) {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) { h = ((h << 5) - h) + id.charCodeAt(i); h |= 0; }
+    h = Math.abs(h);
+    if (rarityId.includes('covert') || rarityId.includes('ancient')) return Math.round((150 + h % 900) * 100) / 100;
+    if (rarityId.includes('classified') || rarityId.includes('mythical')) return Math.round((30 + h % 120) * 100) / 100;
+    if (rarityId.includes('restricted') || rarityId.includes('rare')) return Math.round((6 + h % 24) * 100) / 100;
+    if (rarityId.includes('milspec') || rarityId.includes('uncommon')) return Math.round((1.5 + h % 4) * 100) / 100;
+    return Math.round((200 + h % 2000) * 100) / 100;
+}
+
+/* ====== LOAD SKINS + REAL PRICES ====== */
+async function loadMarketSkins(forceReload) {
+    const legends = [
+        { id:'leg-dlore', name:'AWP | Dragon Lore (FN)', price:11500, rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_awp_cu_awp_dragon_light_png.png' },
+        { id:'leg-howl',  name:'M4A4 | Howl (FN)',       price:5400,  rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_m4a1_cu_m4_howl_light_png.png' },
+        { id:'leg-gpgnir',name:'AWP | Gungnir (FN)',      price:12200, rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_awp_gs_awp_gungnir_light_png.png' },
+        { id:'leg-lotus', name:'AK-47 | Wild Lotus (FN)', price:10800, rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_ak47_cu_ak47_wild_lotus_light_png.png' },
+        { id:'leg-butter',name:'★ Butterfly | Doppler Ruby', price:9500, rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_am_doppler_phase2_light_png.png' },
+    ];
+
+    try {
+        const res = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const keywords = ['AK-47','AWP','M4A4','M4A1-S','Desert Eagle','USP-S','Glock-18','★ Karambit','★ Butterfly','★ M9 Bayonet','★ Bayonet','★ Flip','★ Falchion'];
+        const temp = [...legends];
+
+        /* Try to fetch real prices from Steam Community Market for top skins */
+        let realPrices = {};
+        try {
+            /* Use prices.json from community repo as proxy for real prices */
+            const priceRes = await fetch('https://raw.githubusercontent.com/nicklvsa/csgo-skin-prices/master/prices.json');
+            if (priceRes.ok) {
+                realPrices = await priceRes.json();
+                document.getElementById('price-source-badge').textContent = 'живі ціни';
+                document.getElementById('price-source-badge').className = 'price-badge live';
+            }
+        } catch(e) { /* use calculated prices */ }
+
+        for (const item of data) {
+            if (!item.image) continue;
+            if (!keywords.some(k => item.name.includes(k))) continue;
+            const rid = item.rarity?.id || '';
+            let price = calcPrice(item.id, rid);
+            /* Try to find real price */
+            if (realPrices[item.name]) price = parseFloat(realPrices[item.name]) || price;
+            temp.push({ id: item.id, name: item.name, price, rarity_color: item.rarity?.color || '#4b69ff', image: item.image });
+        }
+        temp.sort((a,b) => a.price - b.price);
+        marketSkins = temp;
+        setBanner(`База: <b>${marketSkins.length}</b> скінів завантажено ✓`);
+        if (isAdmin) adminLog(`База завантажена: ${marketSkins.length} скінів`, 'ok');
+    } catch(e) {
+        marketSkins = [...legends,
+            { id:'bk1', name:'AK-47 | Redline (FT)', price:12.5, rarity_color:'#8847ff', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_ak47_aa_flames_light_png.png' },
+            { id:'bk2', name:'Desert Eagle | Blaze', price:280, rarity_color:'#eb4b4b', image:'https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_deagle_aa_flames_light_png.png' },
+        ];
+        setBanner('Резервна база завантажена');
+    }
+    renderMarket(marketSkins);
+    updateWorkspace();
+    if (isAdmin) { updateAdminStats(); adminSearchSkins(); }
+}
+
+/* ====== ADD SKIN MODAL ====== */
+function openAddSkinModal() {
+    document.getElementById('add-skin-search').value = '';
+    document.getElementById('add-skin-sort').value = 'name';
+    renderAddSkinGrid();
+    openModal('modal-add-skin');
+}
+
+function renderAddSkinGrid() {
+    const q = document.getElementById('add-skin-search').value.toLowerCase();
+    const sortMode = document.getElementById('add-skin-sort').value;
+    let list = q ? marketSkins.filter(s => s.name.toLowerCase().includes(q)) : [...marketSkins];
+    if (sortMode === 'asc') list.sort((a,b) => a.price - b.price);
+    else if (sortMode === 'desc') list.sort((a,b) => b.price - a.price);
+    else list.sort((a,b) => a.name.localeCompare(b.name));
+
+    const grid = document.getElementById('add-skin-grid');
+    grid.innerHTML = '';
+    list.slice(0, 120).forEach(skin => {
+        const div = document.createElement('div');
+        div.className = 'skin-item';
+        div.style.cssText = 'height:115px;transition:all 0.15s;';
+        div.innerHTML = `
+            <div class="skin-rarity" style="background:${skin.rarity_color}"></div>
+            <div class="skin-img"><img src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'" loading="lazy"></div>
+            <div class="skin-name">${skin.name}</div>
+            <div class="skin-price">$${skin.price.toFixed(2)}</div>
+        `;
+        div.onclick = () => {
+            initAudio();
+            myInventory.push({ id: nextId++, name: skin.name, price: skin.price, rarity_color: skin.rarity_color, image: skin.image });
+            renderInventory(); updateWorkspace();
+            div.style.borderColor = 'var(--win)';
+            div.style.background = 'rgba(0,230,118,0.08)';
+            setTimeout(() => { div.style.borderColor = ''; div.style.background = ''; }, 500);
+            setBanner(`<span style="color:var(--win)">✅ Додано: ${skin.name}</span>`);
+        };
+        grid.appendChild(div);
+    });
+    fixImgErrors(grid);
+}
+
+/* ====== RENDER ====== */
+function renderInventory() {
+    const grid = document.getElementById('my-skins-grid');
+    grid.innerHTML = '';
+    document.getElementById('inv-count').textContent = `(${myInventory.length})`;
+    const totalVal = myInventory.reduce((a,b) => a+b.price, 0);
+    document.getElementById('inv-value').textContent = `$${totalVal.toFixed(2)}`;
+    myInventory.forEach(skin => {
+        const sel = selectedOfferIds.includes(skin.id);
+        const div = document.createElement('div');
+        div.className = `skin-item ${sel?'selected':''}`;
+        div.innerHTML = `
+            <div class="skin-rarity" style="background:${skin.rarity_color}"></div>
+            <div class="skin-img" onclick="toggleOffer(${skin.id})"><img src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'" loading="lazy"></div>
+            <div class="skin-name" onclick="toggleOffer(${skin.id})">${skin.name}</div>
+            <div class="skin-price" onclick="toggleOffer(${skin.id})">$${skin.price.toFixed(2)}</div>
+            <button class="btn-withdraw" onclick="initiateWithdraw(event,${skin.id})">📤 Вивести</button>
+        `;
+        grid.appendChild(div);
+    });
+    fixImgErrors(grid);
+}
+
+function renderInventorySorted(order) {
+    const sorted = [...myInventory].sort((a,b) => order==='asc' ? a.price-b.price : b.price-a.price);
+    const grid = document.getElementById('my-skins-grid');
+    grid.innerHTML = '';
+    sorted.forEach(skin => {
+        const sel = selectedOfferIds.includes(skin.id);
+        const div = document.createElement('div');
+        div.className = `skin-item ${sel?'selected':''}`;
+        div.innerHTML = `
+            <div class="skin-rarity" style="background:${skin.rarity_color}"></div>
+            <div class="skin-img" onclick="toggleOffer(${skin.id})"><img src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'" loading="lazy"></div>
+            <div class="skin-name" onclick="toggleOffer(${skin.id})">${skin.name}</div>
+            <div class="skin-price" onclick="toggleOffer(${skin.id})">$${skin.price.toFixed(2)}</div>
+            <button class="btn-withdraw" onclick="initiateWithdraw(event,${skin.id})">📤 Вивести</button>
+        `;
+        grid.appendChild(div);
+    });
+    fixImgErrors(grid);
+}
+
+function sortInventory(order) { renderInventorySorted(order); }
+
+function renderMarket(list) {
+    const grid = document.getElementById('market-grid');
+    grid.innerHTML = '';
+    list.forEach(skin => {
+        const sel = selectedTargetId === skin.id;
+        const div = document.createElement('div');
+        div.className = `skin-item ${sel?'selected':''}`;
+        div.onclick = () => { if (!isSpinning) selectTarget(skin.id); };
+        div.innerHTML = `
+            <div class="skin-rarity" style="background:${skin.rarity_color}"></div>
+            <div class="skin-img"><img src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'" loading="lazy"></div>
+            <div class="skin-name">${skin.name}</div>
+            <div class="skin-price">$${skin.price.toFixed(2)}</div>
+        `;
+        grid.appendChild(div);
+    });
+    fixImgErrors(grid);
+}
+
+function handleSearch() {
+    const q = document.getElementById('market-search').value.toLowerCase();
+    renderMarket(marketSkins.filter(s => s.name.toLowerCase().includes(q)));
+}
+
+function sortMarket(order) {
+    const q = document.getElementById('market-search').value.toLowerCase();
+    const filtered = marketSkins.filter(s => s.name.toLowerCase().includes(q));
+    renderMarket(filtered.sort((a,b) => order==='asc' ? a.price-b.price : b.price-a.price));
+}
+
+/* ====== WHEEL ====== */
+let needleAngle = -90;
+let wheelAnimId = null;
+
+function drawWheel(chance, nAngle) {
+    const canvas = document.getElementById('wheel-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx=110, cy=110, r=107, rInner=75;
+    ctx.clearRect(0,0,220,220);
+    const startRad = -Math.PI/2;
+    const chanceRad = (chance/100)*Math.PI*2;
+
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startRad+chanceRad,startRad+Math.PI*2);
+    ctx.closePath(); ctx.fillStyle='#1a1c28'; ctx.fill();
+
+    if (chance > 0) {
+        ctx.beginPath(); ctx.moveTo(cx,cy);
+        ctx.arc(cx,cy,r,startRad,startRad+chanceRad);
+        ctx.closePath();
+        const g=ctx.createRadialGradient(cx,cy,20,cx,cy,r);
+        g.addColorStop(0,'#ffe040'); g.addColorStop(1,'#ff6d00');
+        ctx.fillStyle=g; ctx.fill();
+    }
+
+    if (chance>0&&chance<100) {
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(startRad), cy+r*Math.sin(startRad));
+        ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(startRad+chanceRad), cy+r*Math.sin(startRad+chanceRad));
+        ctx.stroke();
+    }
+
+    for (let i=0; i<72; i++) {
+        const ang=startRad+(i/72)*Math.PI*2;
+        const isLong=i%6===0; const r1=r-(isLong?11:5);
+        ctx.beginPath();
+        ctx.moveTo(cx+r1*Math.cos(ang), cy+r1*Math.sin(ang));
+        ctx.lineTo(cx+r*Math.cos(ang), cy+r*Math.sin(ang));
+        ctx.strokeStyle=isLong?'rgba(255,255,255,0.5)':'rgba(255,255,255,0.15)';
+        ctx.lineWidth=isLong?2:1; ctx.stroke();
+    }
+
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.strokeStyle='#2a2d45'; ctx.lineWidth=3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx,cy,rInner,0,Math.PI*2); ctx.fillStyle='#0b0c12'; ctx.fill(); ctx.strokeStyle='#2a2d45'; ctx.lineWidth=2; ctx.stroke();
+
+    const nRad=(nAngle*Math.PI)/180;
+    const arrowLen=r-4;
+    ctx.save();
+    ctx.shadowColor='rgba(255,255,255,0.6)'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+arrowLen*Math.cos(nRad), cy+arrowLen*Math.sin(nRad));
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.stroke();
+    const tipX=cx+arrowLen*Math.cos(nRad), tipY=cy+arrowLen*Math.sin(nRad);
+    const perpX=-Math.sin(nRad), perpY=Math.cos(nRad);
+    ctx.beginPath(); ctx.moveTo(tipX,tipY);
+    ctx.lineTo(tipX-14*Math.cos(nRad)+5*perpX, tipY-14*Math.sin(nRad)+5*perpY);
+    ctx.lineTo(tipX-14*Math.cos(nRad)-5*perpX, tipY-14*Math.sin(nRad)-5*perpY);
+    ctx.closePath(); ctx.fillStyle='#ffffff'; ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fillStyle='#0b0c12'; ctx.fill();
+}
+
+/* ====== WORKSPACE ====== */
+function updateWorkspace() {
+    const offerList = document.getElementById('offer-list');
+    const offerSkins = myInventory.filter(s => selectedOfferIds.includes(s.id));
+    const totalOffer = offerSkins.reduce((a,b) => a+b.price, 0);
+
+    if (!offerSkins.length) {
+        offerList.innerHTML = '<div class="empty-ph">Виберіть скіни з інвентарю знизу</div>';
+    } else {
+        offerList.innerHTML = '';
+        offerSkins.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'offer-item'; div.title = 'Клікни щоб прибрати';
+            div.innerHTML = `
+                <div class="ri" style="background:${s.rarity_color}"></div>
+                <img src="${safeImg(s.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'" style="width:100%;height:40px;object-fit:contain;">
+                <div class="on">${s.name}</div>
+                <div class="op">$${s.price.toFixed(2)}</div>
+            `;
+            div.onclick = () => { if (!isSpinning) toggleOffer(s.id); };
+            offerList.appendChild(div);
+        });
+    }
+    document.getElementById('offer-value').textContent = `$${totalOffer.toFixed(2)}`;
+
+    const targetSkin = marketSkins.find(s => s.id === selectedTargetId);
+    const tDisplay = document.getElementById('target-display');
+    let totalTarget = 0;
+
+    if (!targetSkin) {
+        tDisplay.innerHTML = '<div class="empty-ph" style="flex:1">Оберіть скін з маркету праворуч</div>';
+    } else {
+        totalTarget = targetSkin.price;
+        tDisplay.innerHTML = `
+            <div class="target-card" style="border-color:${targetSkin.rarity_color}">
+                <div class="glow-bg" style="color:${targetSkin.rarity_color}"></div>
+                <div class="target-skin-img" style="filter:drop-shadow(0 0 14px ${targetSkin.rarity_color}80)">
+                    <img src="${safeImg(targetSkin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                </div>
+                <div class="target-name">${targetSkin.name}</div>
+                <div class="target-price">$${targetSkin.price.toFixed(2)}</div>
+            </div>
+        `;
+    }
+    document.getElementById('target-value').textContent = `$${totalTarget.toFixed(2)}`;
+
+    let chance = 0;
+    if (totalOffer > 0 && totalTarget > 0) chance = Math.min(75, (totalOffer/totalTarget)*100);
+    const chanceEl = document.getElementById('chance-pct');
+    const lblEl = document.getElementById('chance-lbl');
+    chanceEl.textContent = chance.toFixed(2) + '%';
+    lblEl.textContent = chance>=60 ? 'добрий шанс' : chance>=30 ? 'середній' : 'низький шанс';
+    drawWheel(chance, needleAngle);
+    document.getElementById('btn-upgrade').disabled = (chance === 0);
+}
+
+function toggleOffer(id) {
+    initAudio();
+    const idx = selectedOfferIds.indexOf(id);
+    if (idx > -1) selectedOfferIds.splice(idx, 1);
+    else {
+        if (selectedOfferIds.length >= 6) { alert('Максимум 6 скінів'); return; }
+        selectedOfferIds.push(id);
+    }
+    updateWorkspace(); renderInventory();
+}
+
+function selectTarget(id) {
+    initAudio();
+    selectedTargetId = selectedTargetId === id ? null : id;
+    updateWorkspace(); renderMarket(marketSkins);
+}
+
+/* ====== PRESETS ====== */
+function applyPreset(mult) {
+    initAudio();
+    if (!selectedOfferIds.length) {
+        const sorted = [...myInventory].sort((a,b) => a.price-b.price);
+        const count = mult<=2?2:mult<=5?3:4;
+        for (let i=0; i<Math.min(count,sorted.length); i++) selectedOfferIds.push(sorted[i].id);
+        renderInventory();
+    }
+    const offerSkins = myInventory.filter(s => selectedOfferIds.includes(s.id));
+    if (!offerSkins.length) { alert('Нема скінів в інвентарю!'); return; }
+    selectClosest(offerSkins.reduce((a,b)=>a+b.price,0)*mult);
+}
+function applyPresetChance(pct) {
+    initAudio();
+    if (!selectedOfferIds.length) {
+        const sorted = [...myInventory].sort((a,b) => a.price-b.price);
+        const count = pct<=30?2:pct<=50?3:4;
+        for (let i=0; i<Math.min(count,sorted.length); i++) selectedOfferIds.push(sorted[i].id);
+        renderInventory();
+    }
+    const offerSkins = myInventory.filter(s => selectedOfferIds.includes(s.id));
+    if (!offerSkins.length) { alert('Нема скінів в інвентарю!'); return; }
+    selectClosest(offerSkins.reduce((a,b)=>a+b.price,0)/(pct/100));
+}
+function selectClosest(targetPrice) {
+    if (!marketSkins.length) return;
+    let best=marketSkins[0], minDiff=Infinity;
+    marketSkins.forEach(s => { const d=Math.abs(s.price-targetPrice); if(d<minDiff){minDiff=d;best=s;} });
+    selectedTargetId=best.id;
+    updateWorkspace(); renderMarket(marketSkins);
+    document.getElementById('market-grid').querySelector('.selected')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ====== UPGRADE ====== */
+function runUpgrade() {
+    if (isSpinning||!selectedOfferIds.length||!selectedTargetId) return;
+    initAudio();
+    const targetSkin = marketSkins.find(s => s.id===selectedTargetId);
+    if (!targetSkin) return;
+    const offerTotal = myInventory.filter(s=>selectedOfferIds.includes(s.id)).reduce((a,b)=>a+b.price,0);
+    let chance = Math.min(75,(offerTotal/targetSkin.price)*100);
+
+    const roll = Math.random()*100;
+    const visualWin = roll <= chance;
+    let isWin = visualWin;
+    if (adminForceWin === true) {
+        isWin = true;
+        adminLog(`⚡ Форс-виграш (шанс на колесі: ${chance.toFixed(1)}%)`, 'ok');
+        adminForceWin = null;
+        setForceWin(null);
+    } else if (adminForceWin === false) {
+        isWin = false;
+        adminLog(`⚡ Форс-програш (шанс на колесі: ${chance.toFixed(1)}%)`, 'warn');
+        adminForceWin = null;
+        setForceWin(null);
+    } else {
+        if (visualWin && Math.random() < 0.75) isWin = false;
+    }
+
+    const chanceArc = chance*3.6;
+    let targetAbsolute;
+    if (isWin) {
+        targetAbsolute = -90 + (0.1+Math.random()*0.8)*chanceArc;
+    } else {
+        if (Math.random() < 0.80) {
+            targetAbsolute = Math.random()<0.5 ? -90-(1+Math.random()*4) : -90+chanceArc+(1+Math.random()*4);
+        } else {
+            const sl=-90+chanceArc+15, el=270-15;
+            targetAbsolute = el>sl ? sl+Math.random()*(el-sl) : -90+chanceArc+10;
+        }
+    }
+
+    const currentNorm = ((needleAngle%360)+360)%360;
+    const targetNorm = ((targetAbsolute%360)+360)%360;
+    let delta = targetNorm-currentNorm;
+    if (delta<0) delta+=360;
+    const totalRotation = 5*360+delta;
+
+    isSpinning = true;
+    document.getElementById('btn-upgrade').disabled = true;
+    setBanner('Крутимо стрілку...');
+    totalUpgrades++;
+    if (isAdmin) updateAdminStats();
+
+    const fast = document.getElementById('fast-roll').checked;
+    const duration = fast ? 350 : 4200;
+    const startAngle = needleAngle;
+    const startTime = performance.now();
+    let lastTick = 0;
+
+    function tick(now) {
+        const elapsed=now-startTime;
+        const progress=Math.min(elapsed/duration,1);
+        const ease=1-Math.pow(1-progress,3);
+        needleAngle=startAngle+totalRotation*ease;
+        drawWheel(chance, needleAngle);
+        const tickInterval=25+ease*280;
+        if (now-lastTick>tickInterval) { playTick(); lastTick=now; }
+        if (progress<1) { wheelAnimId=requestAnimationFrame(tick); }
+        else { needleAngle=startAngle+totalRotation; finishUpgrade(isWin,targetSkin,offerTotal,chance); }
+    }
+    wheelAnimId = requestAnimationFrame(tick);
+}
+
+function finishUpgrade(isWin, targetSkin, offerTotal, chance) {
+    myInventory = myInventory.filter(s=>!selectedOfferIds.includes(s.id));
+    if (isWin) {
+        const wonSkin = { id:nextId++, name:targetSkin.name, price:targetSkin.price, rarity_color:targetSkin.rarity_color, image:targetSkin.image };
+        myInventory.push(wonSkin);
+        playWin();
+        if (currentUser) updateLBEntry(currentUser,true,targetSkin.price);
+        document.getElementById('win-img').src = safeImg(targetSkin.image);
+        document.getElementById('win-name').textContent = targetSkin.name;
+        document.getElementById('win-price').textContent = `$${targetSkin.price.toFixed(2)}`;
+        activeWithdrawSkin = wonSkin;
+        openModal('modal-win');
+        setBanner(`<span class="text-win">🎉 ВИГРАШ! ${targetSkin.name}!</span>`);
+    } else {
+        playLose();
+        if (currentUser) updateLBEntry(currentUser,false,0);
+        if (Math.random()<0.25) {
+            const cheap = marketSkins.filter(s=>s.price<=15);
+            if (cheap.length) {
+                const comp = cheap[Math.floor(Math.random()*cheap.length)];
+                const compSkin = { id:nextId++, name:comp.name, price:comp.price, rarity_color:comp.rarity_color, image:comp.image };
+                myInventory.push(compSkin);
+                activeWithdrawSkin = compSkin;
+                setTimeout(() => {
+                    document.getElementById('comp-img').src = safeImg(comp.image);
+                    document.getElementById('comp-name').textContent = comp.name;
+                    document.getElementById('comp-price').textContent = `$${comp.price.toFixed(2)}`;
+                    openModal('modal-comp');
+                }, 600);
+                setBanner(`<span class="text-lose">Невдача... але є компенсація! 🎁</span>`);
+            } else { showLoseModal(offerTotal,chance); }
+        } else { showLoseModal(offerTotal,chance); }
+    }
+    selectedOfferIds=[]; selectedTargetId=null; isSpinning=false;
+    renderInventory(); updateWorkspace();
+    if (isAdmin) updateAdminStats();
+}
+
+function showLoseModal(offerTotal, chance) {
+    document.getElementById('lose-msg').textContent = `Ви поставили $${offerTotal.toFixed(2)} при шансі ${chance.toFixed(1)}%.`;
+    openModal('modal-lose');
+    setBanner(`<span class="text-lose">💀 Невдача. Скіни втрачено.</span>`);
+}
+
+/* ====== WITHDRAW ====== */
+function initiateWithdraw(event, id) {
+    event.stopPropagation();
+    if (!isLoggedIn) { openSteamAuth(); return; }
+    const skin = myInventory.find(s=>s.id===id);
+    if (!skin) return;
+    activeWithdrawSkin = skin;
+    setBanner(`<span style="color:var(--accent)">Створення пропозиції обміну для ${skin.name}...</span>`);
+    setTimeout(() => { playSteamChime(); document.getElementById('steam-notif').classList.add('show'); }, 2500);
+}
+function withdrawWonSkin() {
+    closeModal('modal-win');
+    if (!activeWithdrawSkin) return;
+    setBanner(`<span style="color:var(--accent)">Готуємо обмін для ${activeWithdrawSkin.name}...</span>`);
+    setTimeout(() => { playSteamChime(); document.getElementById('steam-notif').classList.add('show'); }, 2000);
+}
+function withdrawCompSkin() {
+    closeModal('modal-comp');
+    if (!activeWithdrawSkin) return;
+    setTimeout(() => { playSteamChime(); document.getElementById('steam-notif').classList.add('show'); }, 2000);
+}
+function openTradeModal() {
+    document.getElementById('steam-notif').classList.remove('show');
+    if (!activeWithdrawSkin) return;
+    document.getElementById('trade-img').src = safeImg(activeWithdrawSkin.image);
+    document.getElementById('trade-name').textContent = activeWithdrawSkin.name;
+    document.getElementById('trade-confirm').checked = false;
+    document.getElementById('btn-accept').disabled = true;
+    openModal('modal-trade');
+}
+function acceptTrade() {
+    const btn = document.getElementById('btn-accept');
+    btn.textContent = 'Підтвердження через Steam Guard...'; btn.disabled = true;
+    setTimeout(() => {
+        if (activeWithdrawSkin) { myInventory=myInventory.filter(s=>s.id!==activeWithdrawSkin.id); renderInventory(); updateWorkspace(); }
+        closeModal('modal-trade'); activeWithdrawSkin=null;
+        btn.textContent='Прийняти обмін';
+        setBanner('✅ Скін успішно виведено в Steam!'); playWin();
+    }, 2500);
+}
+
+/* ====== STEAM AUTH — з перевіркою адмін-акаунту ====== */
+function openSteamAuth() { openModal('modal-steam-auth'); }
+function doSteamLogin() {
+    const name = document.getElementById('steam-user-input').value.trim() || 'PlayerUA';
+    currentUser = name;
+    isLoggedIn = true;
+
+    /* --- АДМІН EASTER EGG --- */
+    if (name.toLowerCase() === 'mwkdev') {
+        document.getElementById('user-name').textContent = name + ' 🛠';
+        document.getElementById('user-avatar').src = 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
+    } else {
+        document.getElementById('user-name').textContent = name;
+    }
+
+    document.getElementById('user-pill').style.display = 'flex';
+    document.getElementById('btn-steam-login').style.display = 'none';
+    document.getElementById('inv-lock').style.display = 'none';
+    document.getElementById('market-lock').style.display = 'none';
+    closeModal('modal-steam-auth');
+
+    if (name.toLowerCase() === 'mwkdev') {
+        activateAdmin(name);
+        setBanner(`<span style="color:var(--admin)">🛠 Ласкаво просимо, адміністраторе ${name}!</span>`);
+    } else {
+        setBanner(`Ласкаво просимо, ${name}! 🎮`);
+    }
+    renderLB();
+}
+
+/* ====== DEPOSIT ====== */
+function setDepositAmt(v, el) {
+    document.getElementById('deposit-amt').value = v;
+    document.querySelectorAll('.btn-amount').forEach(b => b.classList.remove('selected'));
+    if (el) el.classList.add('selected');
+}
+function doDeposit() {
+    if (!isLoggedIn) { closeModal('modal-deposit'); openSteamAuth(); return; }
+    const amt = parseFloat(document.getElementById('deposit-amt').value) || 0;
+    if (amt <= 0) return;
+    document.getElementById('gpay-form-state').style.display = 'none';
+    document.getElementById('gpay-processing-state').style.display = 'block';
+    setTimeout(() => { document.getElementById('gpay-status').textContent='Перевірка платіжної інформації...'; document.getElementById('step-1').style.opacity='1'; }, 300);
+    setTimeout(() => { document.getElementById('gpay-status').textContent='Обробка платежу...'; document.getElementById('step-1').style.opacity='.5'; document.getElementById('step-2').style.opacity='1'; }, 1800);
+    setTimeout(() => {
+        document.getElementById('gpay-status').textContent='Конвертація у скіни...';
+        document.getElementById('step-2').style.opacity='.5'; document.getElementById('step-3').style.opacity='1';
+        let remaining=amt; const added=[];
+        const shuffled=[...marketSkins].sort(()=>Math.random()-.5);
+        for (const skin of shuffled) { if(skin.price<=remaining){added.push(skin);remaining-=skin.price;if(remaining<1.0)break;} }
+        if (!added.length && marketSkins.length) added.push(marketSkins.reduce((a,b)=>a.price<b.price?a:b));
+        for (const skin of added) myInventory.push({id:nextId++,name:skin.name,price:skin.price,rarity_color:skin.rarity_color,image:skin.image});
+        renderInventory(); updateWorkspace();
+        if (isAdmin) updateAdminStats();
+        const totalPrice=added.reduce((s,skin)=>s+skin.price,0);
+        setBanner(`✅ $${amt.toFixed(2)} → ${added.length} скін(и) на $${totalPrice.toFixed(2)}!`);
+    }, 4500);
+    setTimeout(() => {
+        closeModal('modal-deposit');
+        document.getElementById('gpay-form-state').style.display='block';
+        document.getElementById('gpay-processing-state').style.display='none';
+        ['step-1','step-2','step-3'].forEach((id,i)=>document.getElementById(id).style.opacity=i===0?'1':'.5');
+    }, 6000);
+}
+
+/* ====== TAB SWITCH ====== */
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('tab-active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    btn.classList.add('tab-active');
+    if (tab==='leaderboard') renderLB();
+    if (tab==='admin') { updateAdminStats(); adminSearchSkins(); }
+}
+
+/* ====== MODALS ====== */
+
+/* ====== LIVE DROPS ====== */
+const fakeUsers = ['ZywOo','donk','m0NESY','shroud','s1mple','NiKo','rain','ropz','b1t','Perfecto','Loba','buster','GabeN','PashaBiceps','jks'];
+function createFakeDrop() {
+    if (!marketSkins.length) return;
+    const container = document.getElementById('drops-container');
+    const user = fakeUsers[Math.floor(Math.random()*fakeUsers.length)];
+    const skin = marketSkins[Math.floor(Math.random()*marketSkins.length)];
+    const chance = (Math.random()*68+7).toFixed(1);
+    const isWin = Math.random()>0.42;
+    const card = document.createElement('div');
+    card.className = 'drop-card';
+    card.innerHTML = `
+        <div class="drop-rarity" style="background:${skin.rarity_color}"></div>
+        <img class="drop-img" src="${safeImg(skin.image)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+        <div class="drop-info">
+            <div class="drop-user">${user}</div>
+            <div class="drop-name">${skin.name}</div>
+            <div class="drop-meta">
+                <span class="drop-chance">${chance}%</span>
+                <div class="drop-dot" style="background:${isWin?'#00e676':'#ff1744'}"></div>
+            </div>
+        </div>
+    `;
+    container.insertBefore(card, container.firstChild);
+    while (container.children.length > 9) container.removeChild(container.lastChild);
+}
+
+function setBanner(html) { document.getElementById('status-banner').innerHTML = html; }
+
+/* ====== MODALS FIX ====== */
+function openModal(id) { const el=document.getElementById(id); if(!el) return; el.classList.add('open'); el.style.display='flex'; }
+function closeModal(id) { const el=document.getElementById(id); if(!el) return; el.classList.remove('open'); el.style.display=''; }
+
+/* ====== FORCE WIN STATE ====== */
+let adminForceWin = null;
+function setForceWin(value) {
+    adminForceWin = value;
+    const statusEl = document.getElementById('force-win-status');
+    if (!statusEl) return;
+    const btnWin = document.getElementById('btn-force-win');
+    const btnLose = document.getElementById('btn-force-lose');
+    const btnOff = document.getElementById('btn-force-off');
+    [btnWin, btnLose, btnOff].forEach(b => { if(b) b.style.outline = 'none'; });
+    if (value === true) {
+        statusEl.innerHTML = 'Режим: <span style="color:var(--win)">✅ ГАРАНТОВАНИЙ ВИГРАШ активний</span>';
+        if(btnWin) btnWin.style.outline = '2px solid var(--win)';
+        adminLog('⚡ Форс-виграш активовано', 'ok');
+    } else if (value === false) {
+        statusEl.innerHTML = 'Режим: <span style="color:var(--lose)">💀 ГАРАНТОВАНИЙ ПРОГРАШ активний</span>';
+        if(btnLose) btnLose.style.outline = '2px solid var(--lose)';
+        adminLog('⚡ Форс-програш активовано', 'warn');
+    } else {
+        statusEl.innerHTML = 'Режим: <span style="color:var(--gray)">🎲 Авто (випадковий результат)</span>';
+        if(btnOff) btnOff.style.outline = '2px solid var(--admin)';
+    }
+}
+
+/* ====== INIT ====== */
+window.addEventListener('DOMContentLoaded', () => {
+    const btnUpgrade = document.getElementById('btn-upgrade');
+    if (btnUpgrade) btnUpgrade.addEventListener('click', runUpgrade);
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => { if(e.target===overlay){ overlay.classList.remove('open'); overlay.style.display=''; } });
+    });
+    try { loadInventory(); } catch(e) { console.error(e); }
+    try { renderInventory(); } catch(e) { console.error(e); }
+    try { loadMarketSkins(); } catch(e) { console.error(e); }
+    try { setInterval(createFakeDrop, 1800); } catch(e) {}
+    try { drawWheel(0, needleAngle); } catch(e) {}
+});
+</script>
+</body>
+</html>
